@@ -2,4 +2,16 @@
 
 (load "life.lisp")
 
-(main 60 120 0.05)
+(defun main (&rest rest)
+  (format t "Hit Ctrl-C to stop~%")
+  (handler-case
+    (apply #'play rest)
+    (#+sbcl sb-sys:interactive-interrupt
+     #+ccl  ccl:interrupt-signal-condition
+     #+clisp system::simple-interrupt-condition
+     #+ecl ext:interactive-interrupt
+     #+allegro excl:interrupt-signal
+     ()
+     (princ "Aborted"))))
+
+(main 40 80 0.02)

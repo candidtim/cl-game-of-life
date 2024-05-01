@@ -13,27 +13,30 @@
     (loop for j below (array-dimension figure 1) do
       (setf (aref field (+ i at-i) (+ j at-j)) (aref figure i j)))))
 
+(defun alivep (cell-value) (>= cell-value 1))
+
 
 ;;; Rendering
 
-(defun show-field (field)
+(defun show-field (field &optional gen ppl)
+  "Print the game field and return the number of lines printed out"
   (let ((height (array-dimension field 0)) (width (array-dimension field 1)))
     (format t "┏~v@{~A~:*~}┓~%" width "━")
     (loop for i below height do
       (format t "┃")
       (loop for j below width do
-        (format t "~:[■~; ~]" (zerop (aref field i j))))
+        (format t "~:[ ~;■~]" (alivep (aref field i j))))
       (format t "┃~%"))
     (format t "┗~v@{~A~:*~}┛~%" width "━")
-    (+ height 2))) ; return number of lines printed
+    (format t "~@[Generation: ~5:d     ~]~@[Population: ~5:d~]~%" gen ppl)
+    (+ height 3)))
 
 (defun rewind (n)
+  "Move the caret n lines up"
   (format t "~c[~aA" #\Esc n))
 
 
 ;;; Gameplay
-
-(defun alivep (cell-value) (>= cell-value 1))
 
 (defun count-neighbors (field at-i at-j)
   (let ((box-top (max (1- at-i) 0))
@@ -55,35 +58,27 @@
     new-field))
 
 (defun tick (field)
+  "Evolve the field to the next generation. Returns the new population count."
   (let ((next-gen (compute-next-gen field)))
-    (loop for i below (array-dimension field 0) do
-      (loop for j below (array-dimension field 1) do
+    (loop for i below (array-dimension field 0) sum
+      (loop for j below (array-dimension field 1)
+            count (alivep (aref next-gen i j))
+            do
         (setf (aref field i j) (aref next-gen i j))))))
 
 ; TODO: accept figures as an argument
+; TODO: print from a separate thread?
 (defun play (height width tick-duration)
   (parse-library "figures")
   (let ((field (make-field height width))
         (mid-i (floor height 2))
         (mid-j (floor width 2)))
     (inject field (figure-by-name "diehard") mid-i mid-j)
-    ; TODO: detect still or stable life
-    (loop
-      ; TODO: print from a separate thread skipping some frames?
-      ;       (printing is slower than computation)
-      (rewind (show-field field))
-      (tick field)
-      (sleep tick-duration))
-    (show-field field)))
-
-(defun main (&rest rest)
-  (format t "Hit Ctrl-C to stop~%")
-  (handler-case
-    (apply #'play rest)
-    (#+sbcl sb-sys:interactive-interrupt
-     #+ccl  ccl:interrupt-signal-condition
-     #+clisp system::simple-interrupt-condition
-     #+ecl ext:interactive-interrupt
-     #+allegro excl:interrupt-signal
-     ()
-     (princ "Aborted"))))
+    (loop initially (rewind (show-field field 1))
+          for population = (tick field)
+          for gen from 2
+          until (eq population 0) ; TODO: detect stable life
+          finally (show-field field gen population)
+          do
+      (sleep tick-duration)
+      (rewind (show-field field gen population)))))
