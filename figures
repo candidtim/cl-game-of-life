@@ -1,0 +1,145 @@
+# Figure library
+
+# Syntax:
+#
+# - lines that start with # are ignored as comments
+#
+# - every figure is:
+#
+#     name
+#     configuration
+#
+#   "name" is any string with no whitespace; names are
+#   case-insensetive
+#
+#   "configuration" is any number of lines with either *
+#   or space, where * stand for a live cell, and a space
+#   for a dead one; configuration is interpreted in a
+#   WYSIWIG style with (0,0) coordinate in the top left
+#   corner
+#
+# - an empty line terminates a figure, other empty lines
+#   are ignored
+
+#
+# Stil life
+#
+
+block
+**
+**
+
+beehive
+ **
+*  *
+ **
+
+loaf
+ **
+*  *
+ * *
+  *
+
+boat
+**
+* *
+ *
+
+tub
+ *
+* *
+ *
+
+
+#
+# Oscillators
+#
+
+blinker
+***
+
+toad
+ ***
+***
+
+beacon
+**
+**
+  **
+  **
+
+# TODO: pulsar
+# TODO: penta-decathlon
+
+
+#
+# Spaceships
+#
+
+glider
+*
+ **
+**
+
+lwss
+ **
+*****
+** **
+** ***
+  **
+
+# TODO: mwss
+# TODO: hwss
+
+
+#
+# Methuselahs
+#
+
+r-pentonimo
+ **
+**
+ *
+
+diehard
+      *
+**
+ *   ***
+
+acorn
+ *
+   *
+**  ***
+
+
+#
+# Guns
+#
+
+# TODO: gosper-glider-gun
+# TODO: simkin-glider-gun
+
+
+#
+# Other infinite growth patterns
+#
+
+block-laying-10
+      *
+    * **
+    * *
+    *
+  *
+* *
+
+block-laying-5x5
+*** *
+*
+   **
+ ** *
+* * *
+
+block-laying-2x
+******** *****   ***      ******* *****
+
+
