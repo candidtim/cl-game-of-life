@@ -67,11 +67,23 @@
         (mid-i (floor height 2))
         (mid-j (floor width 2)))
     (inject field (figure-by-name "diehard") mid-i mid-j)
-    ; TODO: loop indefinitely, handle Ctrl-C, detect still or stable life
-    (loop repeat 100 do
+    ; TODO: detect still or stable life
+    (loop
       ; TODO: print from a separate thread skipping some frames?
       ;       (printing is slower than computation)
       (rewind (show-field field))
       (tick field)
       (sleep tick-duration))
     (show-field field)))
+
+(defun main (&rest rest)
+  (format t "Hit Ctrl-C to stop~%")
+  (handler-case
+    (apply #'play rest)
+    (#+sbcl sb-sys:interactive-interrupt
+     #+ccl  ccl:interrupt-signal-condition
+     #+clisp system::simple-interrupt-condition
+     #+ecl ext:interactive-interrupt
+     #+allegro excl:interrupt-signal
+     ()
+     (princ "Aborted"))))

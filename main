@@ -2,4 +2,4 @@
 
 (load "life.lisp")
 
-(play 30 60 0.1)
+(main 60 120 0.05)

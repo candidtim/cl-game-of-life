@@ -1,5 +1,8 @@
 # Figure library
 
+# Most figures come directly from this Wikipedia page:
+# https://en.wikipedia.org/wiki/Conway's_Game_of_Life#Examples_of_patterns
+
 # Syntax:
 #
 # - lines that start with # are ignored as comments
