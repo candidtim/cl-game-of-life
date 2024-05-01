@@ -1,0 +1,5 @@
+#!/usr/bin/env -S sbcl --script
+
+(load "life.lisp")
+
+(play 30 60 0.1)

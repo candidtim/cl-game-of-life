@@ -66,12 +66,12 @@
   (let ((field (make-field height width))
         (mid-i (floor height 2))
         (mid-j (floor width 2)))
-    (inject field (figure-by-name "block") mid-i mid-j)
+    (inject field (figure-by-name "diehard") mid-i mid-j)
     ; TODO: loop indefinitely, handle Ctrl-C, detect still or stable life
     (loop repeat 100 do
       ; TODO: print from a separate thread skipping some frames?
       ;       (printing is slower than computation)
-      ; (rewind (show-field field))
+      (rewind (show-field field))
       (tick field)
       (sleep tick-duration))
     (show-field field)))
