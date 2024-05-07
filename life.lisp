@@ -59,12 +59,17 @@
 
 (defun tick (field)
   "Evolve the field to the next generation. Returns the new population count."
-  (let ((next-gen (compute-next-gen field)))
-    (loop for i below (array-dimension field 0) sum
-      (loop for j below (array-dimension field 1)
-            count (alivep (aref next-gen i j))
-            do
-        (setf (aref field i j) (aref next-gen i j))))))
+  (loop with next-gen = (compute-next-gen field)
+        and population = 0
+        and change-count = 0
+        finally (return (values population change-count))
+        for i below (array-dimension field 0) do
+        (loop for j below (array-dimension field 1) do
+              (if (alivep (aref next-gen i j))
+                  (incf population))
+              (if (not (eq (aref field i j) (aref next-gen i j)))
+                  (progn (incf change-count)
+                         (setf (aref field i j) (aref next-gen i j)))))))
 
 ; TODO: accept figures as an argument
 ; TODO: print from a separate thread?
@@ -75,9 +80,11 @@
         (mid-j (floor width 2)))
     (inject field (figure-by-name "diehard") mid-i mid-j)
     (loop initially (rewind (show-field field 1))
-          for population = (tick field)
+          for population-and-change-count = (multiple-value-list (tick field))
+          for population = (car population-and-change-count)
+          for change-count = (cadr population-and-change-count)
           for gen from 2
-          until (eq population 0) ; TODO: detect stable life
+          until (or (eq population 0) (eq change-count 0)) ; TODO: detect periodic stable life
           finally (show-field field gen population)
           do
       (sleep tick-duration)
