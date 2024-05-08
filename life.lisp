@@ -8,10 +8,12 @@
 (defun make-field (height width)
   (make-array (list height width) :element-type '(unsigned-byte 8) :initial-element 0))
 
-(defun inject (field figure at-i at-j)
-  (loop for i below (array-dimension figure 0) do
-    (loop for j below (array-dimension figure 1) do
-      (setf (aref field (+ i at-i) (+ j at-j)) (aref figure i j)))))
+(defun inject (field figure at-i at-j &optional center-p)
+  (let ((loc-i (if center-p (- at-i (floor (array-dimension figure 0) 2)) (at-i)))
+        (loc-j (if center-p (- at-j (floor (array-dimension figure 1) 2)) (at-j))))
+    (loop for i below (array-dimension figure 0) do
+          (loop for j below (array-dimension figure 1) do
+                (setf (aref field (+ i loc-i) (+ j loc-j)) (aref figure i j))))))
 
 (defun alivep (cell-value) (>= cell-value 1))
 
@@ -73,7 +75,7 @@
   (let ((field (make-field height width))
         (mid-i (floor height 2))
         (mid-j (floor width 2)))
-    (inject field (figure-by-name "diehard") mid-i mid-j)
+    (inject field (figure-by-name "gosper-glider-gun") mid-i mid-j t)
     (loop initially (rewind (show-field field 1))
           for population = (tick field)
           for gen from 2

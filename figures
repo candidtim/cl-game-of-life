@@ -71,8 +71,30 @@ beacon
   **
   **
 
-# TODO: pulsar
-# TODO: penta-decathlon
+pulsar
+  ***   ***
+
+*    * *    *
+*    * *    *
+*    * *    *
+  ***   ***
+
+  ***   ***
+*    * *    *
+*    * *    *
+*    * *    *
+
+  ***   ***
+
+penta-decathlon
+***
+* *
+***
+***
+***
+***
+* *
+***
 
 
 #
@@ -85,15 +107,24 @@ glider
 **
 
 lwss
- **
-*****
-** **
-** ***
+ ****
+*   *
+    *
+*  *
+
+mwss
+ *****
+*    *
+     *
+*   *
+  *
+
+hwss
+ ******
+*     *
+      *
+*    *
   **
-
-# TODO: mwss
-# TODO: hwss
-
 
 #
 # Methuselahs
@@ -119,8 +150,40 @@ acorn
 # Guns
 #
 
-# TODO: gosper-glider-gun
-# TODO: simkin-glider-gun
+gosper-glider-gun
+                        *
+                      * *
+            **      **            **
+           *   *    **            **
+**        *     *   **
+**        *   * **    * *
+          *     *       *
+           *   *
+            **
+
+# FIXME: current parser cannot parse this figure because of empty lines in between
+# simkin-glider-gun
+# **     **
+# **     **
+#
+#     **
+#     **
+#
+#
+#
+#
+#                       ** **
+#                      *     *
+#                      *      *  **
+#                      ***   *   **
+#                           *
+#
+#
+#
+#                     **
+#                     *
+#                      ***
+#                        *
 
 
 #
