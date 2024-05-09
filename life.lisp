@@ -25,10 +25,10 @@
   (let ((height (array-dimension field 0)) (width (array-dimension field 1)))
     (format t "┏~v@{~A~:*~}┓~%" width "━")
     (loop for i below height do
-      (format t "┃")
-      (loop for j below width do
-        (format t "~:[ ~;■~]" (alivep (aref field i j))))
-      (format t "┃~%"))
+          (format t "┃")
+          (loop for j below width do
+                (format t "~:[ ~;■~]" (alivep (aref field i j))))
+          (format t "┃~%"))
     (format t "┗~v@{~A~:*~}┛~%" width "━")
     (format t "~@[Generation: ~5:d     ~]~@[Population: ~5:d~]~%" gen ppl)
     (+ height 3)))
@@ -46,27 +46,27 @@
         (box-left (max (1- at-j) 0))
         (box-right (min (1+ at-j) (1- (array-dimension field 1)))))
     (loop for i from box-top to box-bottom sum
-      (loop for j from box-left to box-right count
-        (alivep (aref field i j))))))
+          (loop for j from box-left to box-right count
+                (alivep (aref field i j))))))
 
 (defun compute-next-gen (field)
   (let ((new-field (make-field (array-dimension field 0) (array-dimension field 1))))
     (loop for i below (array-dimension field 0) do
-      (loop for j below (array-dimension field 1) do
-        (case (count-neighbors field i j)
-          (3 (setf (aref new-field i j) 1))
-          (4 (setf (aref new-field i j) (aref field i j)))
-          (otherwise (setf (aref new-field i j) 0)))))
+          (loop for j below (array-dimension field 1) do
+                (case (count-neighbors field i j)
+                  (3 (setf (aref new-field i j) 1))
+                  (4 (setf (aref new-field i j) (aref field i j)))
+                  (otherwise (setf (aref new-field i j) 0)))))
     new-field))
 
 (defun tick (field)
   "Evolve the field to the next generation. Returns the new population count."
   (let ((next-gen (compute-next-gen field)))
     (loop for i below (array-dimension field 0) sum
-      (loop for j below (array-dimension field 1)
-            count (alivep (aref next-gen i j))
-            do
-        (setf (aref field i j) (aref next-gen i j))))))
+          (loop for j below (array-dimension field 1)
+                count (alivep (aref next-gen i j))
+                do
+                (setf (aref field i j) (aref next-gen i j))))))
 
 ; TODO: accept figures as an argument
 ; TODO: print from a separate thread?
@@ -82,5 +82,5 @@
           until (eq population 0) ; TODO: detect stable life
           finally (show-field field gen population)
           do
-      (sleep tick-duration)
-      (rewind (show-field field gen population)))))
+          (sleep tick-duration)
+          (rewind (show-field field gen population)))))

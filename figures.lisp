@@ -8,7 +8,7 @@
   (string-trim '(#\Space #\Tab #\Newline) text))
 
 (defun commentp (text)
-   (eq (char (strip text) 0) #\#))
+  (eq (char (strip text) 0) #\#))
 
 (defun emptyp (text)
   (string= (strip text) ""))
