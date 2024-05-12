@@ -35,9 +35,6 @@
         when (not (commentp line))
         collect line))
 
-; TODO: fix parsing the last figure
-;       (currently requires two blank lines at the end of the file)
-
 (defun parse-library (library-file-path)
   "Parse the given library file and add all figures to the global figures storage"
   (with-open-file (s library-file-path :direction :input)
