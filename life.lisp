@@ -79,15 +79,14 @@
   (let ((next-gen (compute-next-gen field))
         (population 0)
         (change-crc +no-change+))
-    (loop for i below (array-dimension field 0)
-          do (loop for j below (array-dimension field 1)
-                   do (let ((old-cell (aref field i j))
-                            (new-cell (aref next-gen i j)))
-                        (if (alivep new-cell) (incf population))
-                        (if (/= new-cell old-cell)
-                            (progn
-                              (setf change-crc (append change-crc (list i j new-cell)))
-                              (setf (aref field i j) new-cell))))))
+    (loop for x below (array-total-size field)
+          for old-cell = (row-major-aref field x)
+          for new-cell = (row-major-aref next-gen x)
+          do (if (alivep new-cell) (incf population))
+             (if (/= new-cell old-cell)
+                 (progn
+                   (setf change-crc (append change-crc (list x new-cell)))
+                   (setf (row-major-aref field x) new-cell))))
     (values population change-crc)))
 
 (defun init (height width)
