@@ -95,12 +95,19 @@
   (let ((field (make-field height width))
         (mid-i (floor height 2))
         (mid-j (floor width 2)))
-    (inject field (figure-by-name "blinker") mid-i mid-j t)
+    (inject field (figure-by-name "penta-decathlon") mid-i mid-j t)
     field))
+
+(defun fifo-add (elem lst max-length)
+  "Like cons, but preserves the maximum length of a list"
+  (if (>= (length lst) max-length)
+      (cons elem (butlast lst))
+      (cons elem lst)))
 
 (defun play (field tick-duration)
   (do ((display-height (show-field field 1))
        (generation 2)
+       (change-history nil)
        (done-p nil))
       (done-p generation)
     (multiple-value-bind (population change-crc) (tick field)
@@ -108,4 +115,7 @@
       (rewind display-height)
       (show-field field generation population)
       (if (equal change-crc +no-change+) (setf done-p t))
+      (if (find change-crc change-history :test #'equal) (setf done-p t))
+      (setf change-history (fifo-add change-crc change-history 15))
       (incf generation))))
+
