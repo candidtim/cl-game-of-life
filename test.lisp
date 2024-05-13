@@ -31,4 +31,8 @@
   (test-field-reset))
 
 #+nil
-(play (init 10 20) 100)
+(let ((field (init 10 20)))
+  (multiple-value-bind (generation population period)
+    (play field :generation-evolve-for 5 :show nil)
+    (show-field field generation population)
+    (format t "Stable life period, if any: ~a~%" period)))

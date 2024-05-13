@@ -42,6 +42,18 @@
   (format t "~c[~aA" #\Esc n))
 
 
+;;; Change history routines
+
+(defconstant +no-change+ nil
+  "An object representing that there were no changes in the playing field")
+
+(defun fifo-add (elem lst max-length)
+  "Like cons, but preserves the maximum length of a list"
+  (if (>= (length lst) max-length)
+      (cons elem (butlast lst))
+      (cons elem lst)))
+
+
 ;;; Gameplay
 
 (defun count-neighbors (field at-i at-j)
@@ -70,9 +82,6 @@
                    do (setf (aref new-field i j) (evolve-cell field i j))))
     new-field))
 
-(defconstant +no-change+ '(0)
-  "An object representing that there were no changes in the playing field")
-
 (defun tick (field)
   "Evolve the field to the next generation. Returns the new population count
   and an object representing the change signature (or +no-change+)."
@@ -94,27 +103,43 @@
   (let ((field (make-field height width))
         (mid-i (floor height 2))
         (mid-j (floor width 2)))
-    (inject field (figure-by-name "penta-decathlon") mid-i mid-j t)
+    (inject field (figure-by-name "diehard") mid-i mid-j t)
     field))
 
-(defun fifo-add (elem lst max-length)
-  "Like cons, but preserves the maximum length of a list"
-  (if (>= (length lst) max-length)
-      (cons elem (butlast lst))
-      (cons elem lst)))
-
-(defun play (field tick-duration)
-  (do ((display-height (show-field field 1))
+(defun play (field &key
+                   (tick-duration-seconds 0)
+                   (stable-life-max-period 15)
+                   (generation-start-from 0)
+                   (generation-evolve-for nil)
+                   (show t))
+  (do ((display-height (if show (show-field field 1) nil))
        (generation 2)
        (change-history nil)
-       (done-p nil))
-      (done-p generation)
-    (multiple-value-bind (population change-crc) (tick field)
-      (sleep tick-duration)
-      (rewind display-height)
-      (show-field field generation population)
-      (if (equal change-crc +no-change+) (setf done-p t))
-      (if (find change-crc change-history :test #'equal) (setf done-p t))
-      (setf change-history (fifo-add change-crc change-history 15))
-      (incf generation))))
+       ;; game end:
+       (done-p nil)
+       (stable-life-period nil)
+       (final-population nil))
+      (done-p (values generation final-population stable-life-period))
 
+    ;; evolve:
+    (multiple-value-bind (population change-crc) (tick field)
+
+      ;; display:
+      (if (and show (> generation generation-start-from))
+          (progn
+            (sleep tick-duration-seconds)
+            (rewind display-height)
+            (show-field field generation population)))
+
+      ;; detect stop conditions:
+      (let ((period (position change-crc change-history :test #'equal)))
+        (if (or period ; stable life
+                (and generation-evolve-for (> generation generation-evolve-for)))
+            (progn
+              (setf done-p t)
+              (setf final-population population)
+              (setf stable-life-period period))
+            (progn
+              (setf change-history
+                    (fifo-add change-crc change-history stable-life-max-period))
+              (incf generation)))))))

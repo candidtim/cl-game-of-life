@@ -17,4 +17,4 @@
    ()
    (format t "~%Aborted~%"))))
 
-(main '(40 80) '(0.5))
+(main '(40 80) '(:tick-duration-seconds 0.5))
