@@ -1,11 +1,20 @@
 # Conway's Game of Life in Common Lisp
 
 An implementation of [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway's_Game_of_Life)
-in Common Lisp, mostly for fun and to have something to practice the Lisp
-skills on.
+in Common Lisp, mostly for fun and to have something to practice the Lisp skills on.
 
-At the moment not packaged in any way. To run it, load the `life.lisp` and
-execute the `(play height width tick-duration)` function. Modify the `play`
-function implementation to inject different figures at start.
 
-Or run `./main` to play with some default parameters.
+## Usage
+
+Run with:
+
+    make run
+
+or with [just](https://github.com/casey/just):
+
+    just run [HEIGHT=40] [WIDTH=80] [TICK=0.05]
+
+or just load it:
+
+    (ql:quickload "cgl")
+    (cgl/main:main '(40 80) '(:tick-duration-seconds 0.05))

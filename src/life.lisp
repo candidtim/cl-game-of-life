@@ -1,6 +1,10 @@
 ;;;; Game of Life
 
-(load "figures.lisp")
+(defpackage :cgl/life
+  (:use :cl)
+  (:export #:init #:play)
+  (:import-from :cgl/figures #:parse-library #:figure-by-name))
+(in-package :cgl/life)
 
 
 ;;; Initialization
@@ -21,6 +25,7 @@
     (loop for i below (array-dimension figure 0) do
           (loop for j below (array-dimension figure 1) do
                 (setf (aref field (+ i loc-i) (+ j loc-j)) (aref figure i j))))))
+
 
 ;;; Rendering
 

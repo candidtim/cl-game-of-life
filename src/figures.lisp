@@ -1,5 +1,10 @@
 ;;;; Game of Life - Figure Library Parser
 
+(defpackage :cgl/figures
+  (:use :cl)
+  (:export #:parse-library #:figure-by-name))
+(in-package :cgl/figures)
+
 
 (defparameter *figures* (make-hash-table :test 'equal))
 

@@ -1,38 +1,46 @@
-#+nil
-(progn
-  (defvar *test-field* (make-field 3 4))
-  (defun test-field-reset ()
-    (inject *test-field*
+(defpackage :cgl-tests/life
+  (:use :cl :rove)
+  (:import-from :cgl/life
+                #:+dead+
+                #:+alive+
+                #:make-field
+                #:inject
+                #:evolve-cell
+                #:compute-next-gen
+                #:tick
+                #:show-field)
+  (:import-from :cgl/figures #:parse-figure))
+(in-package :cgl-tests/life)
+
+
+(defun test-field ()
+  (let ((field (make-field 3 4)))
+    (inject field
             (parse-figure '("  * "
                             "****"
                             "   *"))
-            0 0 nil))
-  (test-field-reset)
-  (show-field *test-field*))
+            0 0 nil)
+    field))
 
-#+nil
-(progn
-  (assert (= (evolve-cell *test-field* 0 0) +dead+))  ; dead
-  (assert (= (evolve-cell *test-field* 0 2) +alive+)) ; survided
-  (assert (= (evolve-cell *test-field* 0 3) +alive+)) ; born
-  (assert (= (evolve-cell *test-field* 1 0) +dead+))  ; died (lone)
-  (assert (= (evolve-cell *test-field* 1 2) +dead+))) ; died (overpopulation)
 
-#+nil
-(progn
-  (show-field *test-field*)
-  (show-field (compute-next-gen *test-field*)))
+(deftest gameplay-test
+  (testing "evolve-cell"
+    (let ((field (test-field)))
+      (ok (= (evolve-cell field 0 0) +dead+) "should be dead")
+      (ok (= (evolve-cell field 0 2) +alive+) "should have survived")
+      (ok (= (evolve-cell field 0 3) +alive+) "should have been born")
+      (ok (= (evolve-cell field 1 0) +dead+) "should have died (lone)")
+      (ok (= (evolve-cell field 1 2) +dead+) "should have died (overpopulation)")))
 
-#+nil
-(progn
-  (show-field *test-field*)
-  (tick *test-field*)
-  (show-field *test-field*)
-  (test-field-reset))
+  (testing "compute-next-gen"
+    (let ((field (compute-next-gen (test-field))))
+      (show-field field)
+      (ok (= (aref field 0 3) +alive+) "control cell should be alive in gen 2")))
 
-#+nil
-(let ((field (init 10 20)))
-  (multiple-value-bind (generation population period)
-    (play field :generation-evolve-for 5 :show nil)
-    (show-field field generation population)
-    (format t "Stable life period, if any: ~a~%" period)))
+  (testing "tick"
+    (let ((field (test-field)))
+      (show-field field)
+      (ok (= (aref field 0 3) +dead+) "control cell should be first dead")
+      (tick field)
+      (show-field field)
+      (ok (= (aref field 0 3) +alive+) "control cell should be then alive"))))
