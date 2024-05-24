@@ -12,7 +12,7 @@ Run with:
 
 or with [just](https://github.com/casey/just):
 
-    just run [HEIGHT=40] [WIDTH=80] [TICK=0.05]
+    just run [HEIGHT=40] [WIDTH=80] [TICK=0] [FIGURE=gosper-glider-gun] [FPS=60] [MAXGEN=10000]
 
 or just load it:
 
