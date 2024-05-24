@@ -5,7 +5,7 @@ all: run
 run:
 	$(LISP) \
 		--eval '(asdf:load-system "cgl")' \
-		--eval '(cgl/main:main (list 40 80) (list :tick-duration-seconds 0.05))'
+		--eval '(cgl/main:main 40 80 "gosper-glider-gun" :tick-duration-seconds 0 :fps 60 :max-generation 10000)'
 
 test:
 	$(LISP) --eval '(asdf:test-system "cgl")'
