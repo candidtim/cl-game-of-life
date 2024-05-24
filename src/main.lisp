@@ -10,8 +10,8 @@
   (format t "Hit Ctrl-C to stop~%")
   (handler-case
 
-    (let ((field (apply #'init init-args)))
-      (apply #'play (append (list field) play-args)))
+    (multiple-value-bind (field info) (apply #'init init-args)
+      (apply #'play (append (list field info) play-args)))
 
     (#+sbcl sb-sys:interactive-interrupt
       #+ccl  ccl:interrupt-signal-condition

@@ -3,7 +3,9 @@
 (defpackage :cgl/life
   (:use :cl)
   (:export #:init #:play)
-  (:import-from :cgl/figures #:parse-library #:figure-by-name))
+  (:import-from :bordeaux-threads #:make-thread)
+  (:import-from :cgl/figures #:parse-library #:figure-by-name)
+  (:import-from :cgl/util #:copy-array))
 (in-package :cgl/life)
 
 
@@ -26,6 +28,8 @@
           (loop for j below (array-dimension figure 1) do
                 (setf (aref field (+ i loc-i) (+ j loc-j)) (aref figure i j))))))
 
+(defstruct gameplay-info generation population)
+
 
 ;;; Rendering
 
@@ -46,12 +50,26 @@
   "Move the caret n lines up"
   (format t "~c[~aA" #\Esc n))
 
+(defun start-render (field info &key (fps 60))
+  "An endless thread showing the field with at most a given FPS"
+  (make-thread
+    (lambda ()
+      (loop with display-height = 0
+            for local-copy = (copy-array field)
+            do (setf display-height
+                     (show-field local-copy
+                                 (gameplay-info-generation info)
+                                 (gameplay-info-population info)))
+               (sleep (/ 1 fps))
+               (rewind display-height)))))
+
 
 ;;; Change history routines
 
 (defconstant +no-change+ nil
   "An object representing that there were no changes in the playing field")
 
+;; TODO: that's LIFO; better to init the lst to max-length at start?
 (defun fifo-add (elem lst max-length)
   "Like cons, but preserves the maximum length of a list"
   (if (>= (length lst) max-length)
@@ -61,15 +79,21 @@
 
 ;;; Gameplay
 
+(defun count-alive (field &optional (top 0) (bottom nil) (left 0) (right nil))
+  "Count alive cells in a field or a bounded box inside it."
+  (loop with bottom-v = (or bottom (1- (array-dimension field 0)))
+        with right-v = (or right (1- (array-dimension field 1)))
+        for i from top to bottom-v
+        sum (loop for j from left to right-v
+                  count (alivep (aref field i j)))))
+
 (defun count-neighbors (field at-i at-j)
   "Returns a number of alive cells in a 3x3 square aroud the given cell, itself incuded"
-  (let ((box-top (max (1- at-i) 0))
-        (box-bottom (min (1+ at-i) (1- (array-dimension field 0))))
-        (box-left (max (1- at-j) 0))
-        (box-right (min (1+ at-j) (1- (array-dimension field 1)))))
-    (loop for i from box-top to box-bottom
-          sum (loop for j from box-left to box-right
-                    count (alivep (aref field i j))))))
+  (let ((top (max (1- at-i) 0))
+        (bottom (min (1+ at-i) (1- (array-dimension field 0))))
+        (left (max (1- at-j) 0))
+        (right (min (1+ at-j) (1- (array-dimension field 1)))))
+    (count-alive field top bottom left right)))
 
 (defun evolve-cell (field i j)
   "Returns next generation state for the given cell"
@@ -108,17 +132,24 @@
   (let ((field (make-field height width))
         (mid-i (floor height 2))
         (mid-j (floor width 2)))
-    (inject field (figure-by-name "diehard") mid-i mid-j t)
-    field))
+    (inject field (figure-by-name "gosper-glider-gun") mid-i mid-j t)
+    (values field
+            (make-gameplay-info :generation 1
+                                :population (count-alive field)))))
 
-(defun play (field &key
+(defun play (field info &key
                    (tick-duration-seconds 0)
+                   (fps 60)
                    (stable-life-max-period 15)
-                   (generation-start-from 0)
-                   (generation-evolve-for nil)
-                   (show t))
-  (do ((display-height (if show (show-field field 1) nil))
-       (generation 2)
+                   (generation-evolve-for nil))
+
+  (start-render field info
+                ;; limit FPS if tick duration is set (no need in high FPS):
+                :fps (if (= 0 tick-duration-seconds)
+                         fps
+                         (min fps (/ 1 tick-duration-seconds))))
+
+  (do ((generation 2)
        (change-history nil)
        ;; game end:
        (done-p nil)
@@ -129,12 +160,10 @@
     ;; evolve:
     (multiple-value-bind (population change-crc) (tick field)
 
-      ;; display:
-      (if (and show (> generation generation-start-from))
-          (progn
-            (sleep tick-duration-seconds)
-            (rewind display-height)
-            (show-field field generation population)))
+      (setf (gameplay-info-generation info) generation)
+      (setf (gameplay-info-population info) population)
+
+      (sleep tick-duration-seconds)
 
       ;; detect stop conditions:
       (let ((period (position change-crc change-history :test #'equal)))
