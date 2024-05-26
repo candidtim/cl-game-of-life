@@ -1,8 +1,10 @@
 (defpackage :cgl/main
   (:use :cl)
   (:export #:main)
+  (:import-from :cgl/figures #:parse-library #:figure-by-name)
   (:import-from :cgl/life #:game-field #:new-game #:inject! #:play)
-  (:import-from :cgl/figures #:parse-library #:figure-by-name))
+  (:import-from :cgl/viz #:show-field #:start-render)
+  (:import-from :cgl/tui #:start-tui))
 (in-package :cgl/main)
 
 
@@ -13,6 +15,7 @@
     (inject! (game-field game)
              (figure-by-name start-figure)
              (floor height 2) (floor width 2) t)
+    (start-render game 60)
     (format t "Hit Ctrl-C to stop~%")
     (handler-case
       (apply #'play (cons game play-args))
@@ -22,4 +25,6 @@
        #+ecl ext:interactive-interrupt
        #+allegro excl:interrupt-signal
        ()
-       (format t "~%Aborted~%")))))
+       (progn
+         (show-field game)
+         (format t "~%Aborted~%"))))))

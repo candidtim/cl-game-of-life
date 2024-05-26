@@ -4,7 +4,6 @@
   (:use :cl)
   (:export #:game #:game-field #:game-generation #:game-population #:new-game
            #:inject! #:play)
-  (:import-from :bordeaux-threads #:make-thread)
   (:import-from :cgl/figures #:figure-by-name))
 (in-package :cgl/life)
 
@@ -41,36 +40,6 @@
 (defun new-game (height width)
   "Initialize a new game structure"
   (make-game :field (make-field height width) :generation 1 :population 0))
-
-
-;;; Rendering
-
-(defun show-field (game)
-  "Print the game field and return the number of lines printed out"
-  (let* ((field (game-field game))
-         (height (array-dimension field 0))
-         (width (array-dimension field 1)))
-    (format t "┏~v@{~A~:*~}┓~%" width "━")
-    (loop for i below height do
-          (format t "┃")
-          (loop for j below width do
-                (format t "~:[ ~;■~]" (alivep (aref field i j))))
-          (format t "┃~%"))
-    (format t "┗~v@{~A~:*~}┛~%" width "━")
-    (format t "~@[Generation: ~5:d     ~]~@[Population: ~5:d~]~%"
-            (game-generation game) (game-population game))
-    (+ height 3)))
-
-(defun rewind (n)
-  "Move the caret n lines up"
-  (format t "~c[~aA" #\Esc n))
-
-(defun start-render (game &optional (fps 60))
-  "An endless thread showing the game field with at most a given FPS"
-  (make-thread
-    (lambda ()
-      (loop do (rewind (show-field game))
-               (sleep (/ 1 fps))))))
 
 
 ;;; Gameplay
@@ -122,16 +91,13 @@
 
 (defun play (game &key
                   (tick-duration-seconds 0)
-                  (fps 60)
                   (history-length 15)
                   (max-generation nil))
   "Play the game continuously until any of the endgame conditions are met"
-  (start-render game fps)
   (do ((history (make-list history-length))
        (change (tick! game) (tick! game))
        (game-over nil))
       ((or (find change history :test #'equal)
            (and max-generation (>= (game-generation game) max-generation))))
     (setf history (cons change (butlast history)))
-    (sleep tick-duration-seconds))
-  (show-field game))
+    (sleep tick-duration-seconds)))
