@@ -2,8 +2,10 @@
 
 (defpackage :cgl/viz
   (:use :cl)
-  (:export #:show-field #:start-render)
-  (:import-from :cgl/life #:alivep #:game-field #:game-generation #:game-population)
+  (:export #:show-field #:start-render #:main)
+  (:import-from :cgl/figures #:parse-library #:figure-by-name)
+  (:import-from :cgl/life #:game-field #:game-generation #:game-population
+                          #:alivep #:new-game #:inject! #:play)
   (:import-from :bordeaux-threads #:make-thread))
 (in-package :cgl/viz)
 
@@ -34,3 +36,26 @@
     (lambda ()
       (loop do (rewind (show-field game))
                (sleep (/ 1 fps))))))
+
+(defun main (height width start-figure &rest play-args)
+  "usage: (main 40 80 \"gosper-glider-gun\" :tick-duration-seconds 0.05)"
+  (parse-library "figures")
+  (let ((game (new-game height width)))
+    (inject! (game-field game)
+             (figure-by-name start-figure)
+             (floor height 2) (floor width 2) t)
+    (start-render game 60)
+    (format t "Hit Ctrl-C to stop~%")
+    (handler-case
+      (progn
+         (apply #'play (cons game play-args))
+         (show-field game))
+      (#+sbcl sb-sys:interactive-interrupt
+       #+ccl ccl:interrupt-signal-condition
+       #+clisp system::simple-interrupt-condition
+       #+ecl ext:interactive-interrupt
+       #+allegro excl:interrupt-signal
+       ()
+       (progn
+         (show-field game)
+         (format t "~%Aborted~%"))))))

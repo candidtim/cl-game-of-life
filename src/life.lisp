@@ -3,8 +3,8 @@
 (defpackage :cgl/life
   (:use :cl)
   (:export #:game #:game-field #:game-generation #:game-population #:new-game
-           #:inject! #:play)
-  (:import-from :cgl/figures #:figure-by-name))
+           #:inject! #:play #:start-gameplay)
+  (:import-from :bordeaux-threads #:make-thread))
 (in-package :cgl/life)
 
 
@@ -101,3 +101,11 @@
            (and max-generation (>= (game-generation game) max-generation))))
     (setf history (cons change (butlast history)))
     (sleep tick-duration-seconds)))
+
+(defun start-gameplay (&rest args)
+  "Start a thread playing the given game.
+  All arguments are passed to the play function as is.
+  The thread can terminate if the game terminates."
+  (make-thread
+    (lambda ()
+      (apply #'play args))))
