@@ -197,6 +197,11 @@
       (uiop:run-program '("stty" "sane") :ignore-error-status t :output out :error-output t :input :interactive)
       out)))
 
+(defun terminal-size ()
+  (let* ((out (uiop:run-program '("stty" "size") :output :string :input :interactive))
+         (parts (map 'list #'parse-integer (uiop:split-string out :separator " "))))
+    (values (first parts) (second parts))))
+
 
 ;;; Signal processing
 ;; TODO
@@ -217,38 +222,50 @@
 
 ;;; High-level rendering
 
-;; TODO: get terminal size, handle SIGWINCH
-(defun draw-window ()
-  ())
+(defun draw-box (&key (top 1) (left 1) height width)
+  (multiple-value-bind (rows cols) (terminal-size)
+    (let ((m (if (null height) (- rows top 1) height))
+          (n (if (null width) (- cols left 1) width)))
+      (cursor-position top left)
+      (format t "┏~v@{~A~:*~}┓" n "━")
+      (loop for i from 1 upto m
+            do (progn
+                 (cursor-position (+ top i) left)
+                 (princ "┃")
+                 (cursor-position (+ top i) (+ left n 1))
+                 (princ "┃")))
+      (cursor-position (+ top m 1) left)
+      (format t "┗~v@{~A~:*~}┛" n "━"))))
 
 
 ;;; Game rendering
 
 (defun princ-alive ()
-  (princ (style +red+ +bg-blue+ +style-bold+))
+  (princ (style +red+ +style-bold+))
   (princ "■")
   (princ (style +style-reset+)))
 
 (defun princ-dead ()
-  (princ (style +bg-blue+))
-  (princ " ")
-  (princ (style +style-reset+)))
+  (princ " "))
 
 ;; TODO: show generation and population
-(defun render-field (field)
+(defun render-field (field top left)
   (loop for i below (array-dimension field 0) do
         (loop for j below (array-dimension field 1) do
-              (cursor-position i j)
+              (cursor-position (+ top i) (+ left j))
               (if (alivep (aref field i j))
                   (princ-alive)
                   (princ-dead)))))
 
 (defun run-tui (game &optional (fps 60))
   (configure-tty)
+  (let ((height (array-dimension (game-field game) 0))
+        (width (array-dimension (game-field game) 1)))
+    (draw-box :height height :width width))
   (loop named main-loop
         for field = (game-field game)
         do (progn
-             (render-field field)
+             (render-field field 2 2)
              (force-output)
              (when (eql (read-char-no-hang *standard-input*) #\q)
                (return-from main-loop))
