@@ -8,7 +8,7 @@ in Common Lisp, mostly for fun and to have something to practice the Lisp skills
 
 Run with [just](https://github.com/casey/just):
 
-    just run [UIMODE=tui|viz] [HEIGHT=40] [WIDTH=80] [TICK=0] [FIGURE=gosper-glider-gun] [MAXGEN=10000]
+    just run [HEIGHT=40] [WIDTH=80] [TICK=0] [FIGURE=gosper-glider-gun] [MAXGEN=10000]
 
 or just load it:
 

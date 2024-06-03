@@ -14,12 +14,8 @@
 
 (defpackage :cgl/tui
   (:use :cl)
-  (:export #:main)
   (:import-from :alexandria #:define-constant)
-  (:import-from :uiop #:run-program)
-  (:import-from :cgl/figures #:parse-library #:figure-by-name)
-  (:import-from :cgl/life #:alivep #:game-field #:game-generation #:game-population
-                          #:new-game #:inject! #:start-gameplay))
+  (:import-from :uiop #:run-program))
 (in-package :cgl/tui)
 
 
@@ -67,24 +63,24 @@
 (defun cursor-position (&optional (n 1) (m 1))
   (princ (csi :p (list n m) :f #\H)))
 
-(defun erase-display (&optional (how 'down))
-  "Erase in a display. The `how' can be one of: 'up, 'down, 'all, and 'purge.
+(defun erase-display (&optional (how :down))
+  "Erase in a display. The `how' can be one of: :up, :down, :all, and :purge.
   Purge is same as all, and also attempts to erase the scrollback history.
   Default is down."
   (let ((n (case how
-             (down 0)
-             (up 1)
-             (all 2)
-             (purge 3))))
+             (:down 0)
+             (:up 1)
+             (:all 2)
+             (:purge 3))))
     (princ (csi :p n :f #\J))))
 
-(defun erase-line (how)
+(defun erase-line (&optional (how :forward))
   "Erase in a line. The `how' can be one of: 'forward, 'backward, and 'all.
   Cursor position doesn't change. Default is forward."
   (let ((n (case how
-             (forward 0)
-             (backward 1)
-             (all 2))))
+             (:forward 0)
+             (:backward 1)
+             (:all 2))))
     (princ (csi :p n :f #\K))))
 
 
@@ -222,74 +218,38 @@
 
 ;;; High-level rendering
 
-(defun draw-box (&key (top 1) (left 1) height width)
+(defun write-at (i j str)
+  "Write the given text starting at the position i, j on the screen"
+  (cursor-position i j)
+  (format t str))
+
+(defun in-style (str &rest styles)
+  "Format a given string with provided styles. All styling is reset at the end of the
+  string, including any styles defined previlusly."
+  (with-output-to-string (out)
+    (format out (apply #'style styles))
+    (format out str)
+    (format out (style +style-reset+))))
+
+(defun draw-box (&key (top 1) (left 1) height width (title nil) (subtitle nil))
+  "Draw a box with optional title and subtitle. By default located at top left corner
+  of the screen (1,1), and takes full screen height and width."
   (multiple-value-bind (rows cols) (terminal-size)
     (let ((m (if (null height) (- rows top 1) height))
           (n (if (null width) (- cols left 1) width)))
-      (cursor-position top left)
-      (format t "┏~v@{~A~:*~}┓" n "━")
+      (write-at top left (format nil "┏~v@{~A~:*~}┓" n "━"))
       (loop for i from 1 upto m
             do (progn
-                 (cursor-position (+ top i) left)
-                 (princ "┃")
-                 (cursor-position (+ top i) (+ left n 1))
-                 (princ "┃")))
-      (cursor-position (+ top m 1) left)
-      (format t "┗~v@{~A~:*~}┛" n "━"))))
+                 (write-at (+ top i) left "┃")
+                 (write-at (+ top i) (+ left n 1) "┃")))
+      (write-at (+ top m 1) left (format nil "┗~v@{~A~:*~}┛" n "━"))
+      (if (not (null title))
+        (write-at top (+ left 2) (format nil " ~a " title)))
+      (if (not (null subtitle))
+        (write-at top (+ left n (- (length subtitle)) -2) (format nil " ~a " subtitle))))))
 
 
-;;; Game rendering
+;;; Export everything from this package
 
-(defun princ-alive ()
-  (princ (style +red+ +style-bold+))
-  (princ "■")
-  (princ (style +style-reset+)))
-
-(defun princ-dead ()
-  (princ " "))
-
-(defun render-field (game top left)
-  (let* ((field (game-field game))
-         (height (array-dimension field 0))
-         (width (array-dimension field 1)))
-    (loop for i below height do
-          (loop for j below width do
-                (cursor-position (+ top i) (+ left j))
-                (if (alivep (aref field i j))
-                    (princ-alive)
-                    (princ-dead))))
-    (cursor-position (+ top height) 3)
-    (format t " Generation: ~5:d " (game-generation game))
-    (cursor-position (+ top (array-dimension field 0)) (- width 18))
-    (format t " Population: ~5:d " (game-population game))))
-
-(defun run-tui (game &optional (fps 60))
-  (configure-tty)
-
-  (let ((height (array-dimension (game-field game) 0))
-        (width (array-dimension (game-field game) 1)))
-    (draw-box :height height :width width)
-    (cursor-position 1 3)
-    (format t " Game of Life ")
-    (cursor-position (+ height 4) 2)
-    (format t "Press 'q' to quit"))
-
-  (loop named main-loop
-        do (progn
-             (render-field game 2 2)
-             (force-output)
-             (when (eql (read-char-no-hang *standard-input*) #\q)
-               (return-from main-loop))
-             (sleep (/ 1 fps))))
-
-  (restore-tty))
-
-(defun main (height width start-figure &rest play-args)
-  "usage: (main 40 80 \"gosper-glider-gun\" :tick-duration-seconds 0.05)"
-  (parse-library "figures")
-  (let ((game (new-game height width)))
-    (inject! (game-field game)
-             (figure-by-name start-figure)
-             (floor height 2) (floor width 2) t)
-    (apply #'start-gameplay (cons game play-args))
-    (run-tui game)))
+(let ((pack (find-package :foo)))
+  (do-all-symbols (sym pack) (when (eql (symbol-package sym) pack) (export sym))))

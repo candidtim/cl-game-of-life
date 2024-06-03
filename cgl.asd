@@ -4,6 +4,6 @@
   :author "candidtim"
   :license "Unlicense"
   :class :package-inferred-system
-  :depends-on ("cgl/tui" "alexandria" "bordeaux-threads")
+  :depends-on ("cgl/main" "alexandria" "bordeaux-threads")
   :pathname "src"
   :in-order-to ((test-op (test-op "cgl-tests"))))
