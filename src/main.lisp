@@ -31,7 +31,7 @@
   (configure-tty)
   (loop named tui-loop
         with should-redraw = t
-        initially (on-resize (setf should-redraw t))
+        initially (on-resize (lambda () (setf should-redraw t)))
         do (progn
              (if should-redraw
                  (progn

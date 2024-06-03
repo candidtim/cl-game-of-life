@@ -15,6 +15,7 @@
   (:use :cl)
   (:import-from :alexandria #:define-constant)
   (:import-from :uiop #:run-program #:quit)
+  (:import-from :bordeaux-threads #:make-thread)
   (:import-from :cffi))
 (in-package :cgl/tui)
 
@@ -228,19 +229,23 @@
   (update-terminal-size)
   (set-signal-handler +SIGHUP+ (restore-tty) (quit))
   (set-signal-handler +SIGINT+ (restore-tty) (quit))
-  (set-signal-handler +SIGQUIT+ (restore-tty) (quit)))
+  (set-signal-handler +SIGQUIT+ (restore-tty) (quit))
+  (set-signal-handler +SIGWINCH+ (make-thread #'handle-sigwinch)))
 
 (defun restore-tty ()
   (disable-alternative-screen-buffer)
   (show-cursor)
   (tty-sane))
 
-(defmacro on-resize (&body body)
-  `(set-signal-handler
-     +SIGWINCH+
-     (progn
-       (update-terminal-size)
-       ,@body)))
+(defvar *resize-listeners* nil)
+
+(defun on-resize (fn)
+  (push fn *resize-listeners*))
+
+(defun handle-sigwinch ()
+  (update-terminal-size)
+  (loop for fn in *resize-listeners*
+        do (apply fn nil)))
 
 
 ;;; High-level rendering
