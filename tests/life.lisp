@@ -8,8 +8,7 @@
                 #:game-field
                 #:inject!
                 #:evolve-cell
-                #:tick!
-                #:show-field)
+                #:tick!)
   (:import-from :cgl/figures #:parse-figure))
 (in-package :cgl-tests/life)
 
@@ -36,8 +35,6 @@
   (testing "tick!"
     (let* ((field (test-field))
            (game (make-game :field field :generation 1 :population 0)))
-      (show-field game)
       (ok (= (aref (game-field game) 0 3) +dead+) "control cell should be first dead")
       (tick! game)
-      (show-field game)
       (ok (= (aref (game-field game) 0 3) +alive+) "control cell should be then alive"))))

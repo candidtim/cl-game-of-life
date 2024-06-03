@@ -5,7 +5,6 @@
 
 ;; To-do list:
 ;; FIXME: Predefined control sequences should be constants/compiled/memorized?
-;; TODO:  Handle signals, especially WINCH and INT
 ;; FIXME: Printing some wide characters doesn't work (e.g., emojis)
 ;; TODO:  Restore TTY configuration on any unhandled erorr
 ;;        (especially, disable the alternate screen buffer to see the errors)
@@ -15,7 +14,8 @@
 (defpackage :cgl/tui
   (:use :cl)
   (:import-from :alexandria #:define-constant)
-  (:import-from :uiop #:run-program))
+  (:import-from :uiop #:run-program #:quit)
+  (:import-from :cffi))
 (in-package :cgl/tui)
 
 
@@ -193,14 +193,30 @@
       (uiop:run-program '("stty" "sane") :ignore-error-status t :output out :error-output t :input :interactive)
       out)))
 
-(defun terminal-size ()
+(defvar *terminal-rows* nil)
+(defvar *terminal-cols* nil)
+
+(defun update-terminal-size ()
   (let* ((out (uiop:run-program '("stty" "size") :output :string :input :interactive))
          (parts (map 'list #'parse-integer (uiop:split-string out :separator " "))))
-    (values (first parts) (second parts))))
+    (setf *terminal-rows* (first parts))
+    (setf *terminal-cols* (second parts))))
 
 
 ;;; Signal processing
-;; TODO
+
+(define-constant +SIGHUP+ 1)
+(define-constant +SIGINT+ 2)
+(define-constant +SIGQUIT+ 3)
+(define-constant +SIGWINCH+ 28)
+
+(defmacro set-signal-handler (signo &body body)
+  (let ((handler (gensym "HANDLER")))
+    `(progn
+       (cffi:defcallback ,handler :void ((signo :int))
+         (declare (ignore signo))
+         ,@body)
+       (cffi:foreign-funcall "signal" :int ,signo :pointer (cffi:callback ,handler)))))
 
 
 ;;; High-level TTY control
@@ -208,12 +224,23 @@
 (defun configure-tty ()
   (enable-alternate-screen-buffer)
   (hide-cursor)
-  (tty-raw))
+  (tty-raw)
+  (update-terminal-size)
+  (set-signal-handler +SIGHUP+ (restore-tty) (quit))
+  (set-signal-handler +SIGINT+ (restore-tty) (quit))
+  (set-signal-handler +SIGQUIT+ (restore-tty) (quit)))
 
 (defun restore-tty ()
   (disable-alternative-screen-buffer)
   (show-cursor)
   (tty-sane))
+
+(defmacro on-resize (&body body)
+  `(set-signal-handler
+     +SIGWINCH+
+     (progn
+       (update-terminal-size)
+       ,@body)))
 
 
 ;;; High-level rendering
@@ -234,19 +261,18 @@
 (defun draw-box (&key (top 1) (left 1) height width (title nil) (subtitle nil))
   "Draw a box with optional title and subtitle. By default located at top left corner
   of the screen (1,1), and takes full screen height and width."
-  (multiple-value-bind (rows cols) (terminal-size)
-    (let ((m (if (null height) (- rows top 1) height))
-          (n (if (null width) (- cols left 1) width)))
-      (write-at top left (format nil "┏~v@{~A~:*~}┓" n "━"))
-      (loop for i from 1 upto m
-            do (progn
-                 (write-at (+ top i) left "┃")
-                 (write-at (+ top i) (+ left n 1) "┃")))
-      (write-at (+ top m 1) left (format nil "┗~v@{~A~:*~}┛" n "━"))
-      (if (not (null title))
-        (write-at top (+ left 2) (format nil " ~a " title)))
-      (if (not (null subtitle))
-        (write-at top (+ left n (- (length subtitle)) -2) (format nil " ~a " subtitle))))))
+  (let ((m (if (null height) (- *terminal-rows* top 1) height))
+        (n (if (null width) (- *terminal-cols* left 1) width)))
+    (write-at top left (format nil "┏~v@{~A~:*~}┓" n "━"))
+    (loop for i from 1 upto m
+          do (progn
+               (write-at (+ top i) left "┃")
+               (write-at (+ top i) (+ left n 1) "┃")))
+    (write-at (+ top m 1) left (format nil "┗~v@{~A~:*~}┛" n "━"))
+    (if (not (null title))
+      (write-at top (+ left 2) (format nil " ~a " title)))
+    (if (not (null subtitle))
+      (write-at top (+ left n (- (length subtitle)) -2) (format nil " ~a " subtitle)))))
 
 
 ;;; Export everything from this package
