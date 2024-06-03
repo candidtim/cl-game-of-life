@@ -13,12 +13,6 @@
 (in-package :cgl/main)
 
 
-(defun princ-alive ()
-  (format t (in-style "■" +red+ +style-bold+)))
-
-(defun princ-dead ()
-  (princ " "))
-
 (defun render-field (game top left)
   (let* ((field (game-field game))
          (height (array-dimension field 0))
