@@ -43,8 +43,7 @@
              (force-output)
              (when (eql (read-char-no-hang *standard-input*) #\q)
                (return-from tui-loop))
-             (sleep (/ 1 fps))))
-  (restore-tty))
+             (sleep (/ 1 fps)))))
 
 (defun main (height width start-figure &rest play-args)
   "usage: (main 40 80 \"gosper-glider-gun\" :tick-duration-seconds 0.05)"

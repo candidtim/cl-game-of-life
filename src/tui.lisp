@@ -6,17 +6,15 @@
 ;; To-do list:
 ;; FIXME: Predefined control sequences should be constants/compiled/memorized?
 ;; FIXME: Printing some wide characters doesn't work (e.g., emojis)
-;; TODO:  Restore TTY configuration on any unhandled erorr
-;;        (especially, disable the alternate screen buffer to see the errors)
 ;; FIXME: Non-blocking input is still processed on every "frame" only
 ;; FIXME: And yet, should this use terminfo?
 
 (defpackage :cgl/tui
   (:use :cl)
-  (:import-from :alexandria #:define-constant)
-  (:import-from :uiop #:run-program #:quit)
-  (:import-from :bordeaux-threads #:make-thread)
-  (:import-from :cffi))
+  (:import-from :uiop)
+  (:import-from :exit-hooks)
+  (:import-from :trivial-signal)
+  (:import-from :alexandria #:define-constant))
 (in-package :cgl/tui)
 
 
@@ -204,22 +202,6 @@
     (setf *terminal-cols* (second parts))))
 
 
-;;; Signal processing
-
-(define-constant +SIGHUP+ 1)
-(define-constant +SIGINT+ 2)
-(define-constant +SIGQUIT+ 3)
-(define-constant +SIGWINCH+ 28)
-
-(defmacro set-signal-handler (signo &body body)
-  (let ((handler (gensym "HANDLER")))
-    `(progn
-       (cffi:defcallback ,handler :void ((signo :int))
-         (declare (ignore signo))
-         ,@body)
-       (cffi:foreign-funcall "signal" :int ,signo :pointer (cffi:callback ,handler)))))
-
-
 ;;; High-level TTY control
 
 (defun configure-tty ()
@@ -227,15 +209,20 @@
   (hide-cursor)
   (tty-raw)
   (update-terminal-size)
-  (set-signal-handler +SIGHUP+ (restore-tty) (quit))
-  (set-signal-handler +SIGINT+ (restore-tty) (quit))
-  (set-signal-handler +SIGQUIT+ (restore-tty) (quit))
-  (set-signal-handler +SIGWINCH+ (make-thread #'handle-sigwinch)))
+  (setf (trivial-signal:signal-handler :sighup)   #'handle-sigint-and-co)
+  (setf (trivial-signal:signal-handler :sigint)   #'handle-sigint-and-co)
+  (setf (trivial-signal:signal-handler :sigquit)  #'handle-sigint-and-co)
+  (setf (trivial-signal:signal-handler :sigwinch) #'handle-sigwinch)
+  (exit-hooks:add-exit-hook #'restore-tty))
 
 (defun restore-tty ()
   (disable-alternative-screen-buffer)
   (show-cursor)
   (tty-sane))
+
+(defun handle-sigint-and-co ()
+  (restore-tty)
+  (uiop:quit))
 
 (defvar *resize-listeners* nil)
 
